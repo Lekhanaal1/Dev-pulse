@@ -1,0 +1,19 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'user-service'
+    static_configs:
+      - targets: ['user-service:8000']
+  - job_name: 'task-service'
+    static_configs:
+      - targets: ['task-service:8000']
+  - job_name: 'analytics-service'
+    static_configs:
+      - targets: ['analytics-service:8000']
+  - job_name: 'notification-service'
+    static_configs:
+      - targets: ['notification-service:8000']
+  - job_name: 'nats'
+    static_configs:
+      - targets: ['nats:8222'] 

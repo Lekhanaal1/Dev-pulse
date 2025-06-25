@@ -1,0 +1,92 @@
+version: '3.8'
+services:
+  user-service:
+    build: ./user-service
+    ports:
+      - "8001:8000"
+    environment:
+      - DB_HOST=postgres
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_NAME=devpulse_users
+    depends_on:
+      - postgres
+
+  task-service:
+    build: ./task-service
+    ports:
+      - "8002:8000"
+    environment:
+      - MONGO_URI=mongodb://mongo:27017/devpulse_tasks
+    depends_on:
+      - mongo
+
+  analytics-service:
+    build: ./analytics-service
+    ports:
+      - "8003:8000"
+    environment:
+      - NATS_URL=nats://nats:4222
+    depends_on:
+      - nats
+
+  notification-service:
+    build: ./notification-service
+    ports:
+      - "8004:8000"
+    environment:
+      - NATS_URL=nats://nats:4222
+    depends_on:
+      - nats
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+    depends_on:
+      - user-service
+      - task-service
+
+  nats:
+    image: nats:2.10-alpine
+    ports:
+      - "4222:4222"
+      - "8222:8222"
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: devpulse_users
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  mongo:
+    image: mongo:6.0
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodata:/data/db
+
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./deployments/prometheus.yml:/etc/prometheus/prometheus.yml
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3001:3000"
+    depends_on:
+      - prometheus
+
+volumes:
+  pgdata:
+  mongodata: 
