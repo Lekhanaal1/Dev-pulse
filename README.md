@@ -1,89 +1,190 @@
-DevPulse
-========
+# DevPulse - Microservices Developer Dashboard
 
-DevPulse is a scalable, open-source task tracker designed for modern developer teams. Built with a modular microservices architecture, it delivers speed, flexibility, and privacy—without the complexity or cost of legacy tools.
+A modern, microservices-based developer dashboard for task tracking, prioritization, and health monitoring built with Go, Next.js, and cloud-native technologies.
 
-Why DevPulse?
--------------
+## 🏗️ Architecture
 
-Today's developer teams are remote, global, and need tools that are fast, reliable, and customizable. Most existing solutions are either too complex, too expensive, or not built with developers in mind. DevPulse is different:
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Frontend      │    │   API Gateway   │    │   User Service  │
+│   (Next.js)     │◄──►│   (Go/Gin)      │◄──►│   (Go/PostgreSQL)│
+│   Port: 3000    │    │   Port: 8000    │    │   Port: 8001    │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+                                │
+                                ▼
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│  Task Service   │    │ Analytics Svc   │    │ Notification Svc│
+│  (Go/MongoDB)   │    │ (Go/NATS)       │    │ (Go/NATS)       │
+│  Port: 8002     │    │ Port: 8003      │    │ Port: 8004      │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+```
 
-- Built for developers, by developers
-- High-speed APIs with Go and Gin
-- Modular microservices for easy scaling and extension
-- Self-hosted and privacy-respecting
-- Open source and community-driven
+## 🚀 Features
 
-Technical Highlights
--------------------
+- **Microservices Architecture**: Independent services with clear boundaries
+- **Polyglot Persistence**: PostgreSQL for users, MongoDB for tasks
+- **Event-Driven Messaging**: NATS for asynchronous communication
+- **API Gateway**: Centralized routing, authentication, and rate limiting
+- **Monitoring**: Prometheus metrics and Grafana dashboards
+- **Containerized**: Docker and Docker Compose for easy deployment
+- **Security**: JWT authentication and password hashing
 
-DevPulse is more than a to-do app. It demonstrates:
+## 🛠️ Tech Stack
 
-- Microservices and distributed systems in Go
-- Real-world use of Docker, Kubernetes, and CI/CD
-- Secure, scalable APIs and async messaging (NATS)
-- Dual-database integration (PostgreSQL for users, MongoDB for tasks)
-- Modern monitoring with Prometheus and Grafana
-- Concurrency and performance best practices
+- **Backend**: Go 1.23+, Gin framework
+- **Frontend**: Next.js, React
+- **Databases**: PostgreSQL, MongoDB
+- **Message Broker**: NATS
+- **Monitoring**: Prometheus, Grafana
+- **Containerization**: Docker, Docker Compose
+- **Authentication**: JWT tokens
 
-Personal and Community Value
-----------------------------
+## 📋 Prerequisites
 
-- Showcases your ability to architect, build, and deploy a real product
-- A foundation for teams, students, and open-source contributors to build and extend
-- A launchpad for features like GitHub/Slack integrations or ML-powered analytics
+- Docker & Docker Compose
+- Go 1.23+ (for local development)
+- Node.js 18+ (for local development)
 
-Getting Started
----------------
+## 🚀 Quick Start
 
-**Prerequisites:**
-- Docker and Docker Compose
-- Go 1.21 or newer
-- Node.js 18 or newer
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/Lekhanaal1/Dev-pulse.git
+   cd Dev-pulse
+   ```
 
-**Quickstart:**
+2. **Start all services**
+   ```bash
+   docker-compose up --build
+   ```
 
-    git clone <repo-url>
-    cd DevPulse
-    docker-compose up --build
+3. **Access the application**
+   - Frontend: http://localhost:3000
+   - API Gateway: http://localhost:8000
+   - Prometheus: http://localhost:9090
+   - Grafana: http://localhost:3001
 
-Monorepo Structure
-------------------
+## 📚 API Documentation
 
-    DevPulse/
-      api-gateway/
-      user-service/
-      task-service/
-      analytics-service/
-      notification-service/
-      frontend/
-      deployments/    # Helm charts, Dockerfiles
-      scripts/
-      tests/
-      docs/
+### User Service (Port 8001)
 
-Services
---------
-- user-service: Go + Gin + PostgreSQL
-- task-service: Go + Gin + MongoDB
-- analytics-service: Go + Gin + NATS
-- notification-service: Go + Gin + NATS
-- frontend: Next.js (React)
+#### Create User
+```bash
+POST /users
+Content-Type: application/json
 
-Monitoring
-----------
-Prometheus and Grafana are available at their respective ports (see docker-compose).
+{
+  "name": "John Doe",
+  "email": "john@example.com",
+  "password": "securepassword"
+}
+```
 
-CI/CD
------
-GitHub Actions workflows are in `.github/workflows/`.
+#### Get All Users
+```bash
+GET /users
+Authorization: Bearer <jwt-token>
+```
 
-Next Steps
-----------
-- Implement service scaffolds
-- Add API Gateway
-- Write Dockerfiles and Helm charts
-- Integrate monitoring
-- Add tests and documentation
+#### Get User by ID
+```bash
+GET /users/:id
+Authorization: Bearer <jwt-token>
+```
 
-DevPulse exists because developers deserve tools that are as fast, flexible, and innovative as they are. 
+#### Update User
+```bash
+PUT /users/:id
+Authorization: Bearer <jwt-token>
+Content-Type: application/json
+
+{
+  "name": "John Updated",
+  "email": "john.updated@example.com"
+}
+```
+
+#### Delete User
+```bash
+DELETE /users/:id
+Authorization: Bearer <jwt-token>
+```
+
+### Health Checks
+
+All services expose health endpoints:
+```bash
+curl http://localhost:8000/healthz  # API Gateway
+curl http://localhost:8001/healthz  # User Service
+curl http://localhost:8002/healthz  # Task Service
+curl http://localhost:8003/healthz  # Analytics Service
+curl http://localhost:8004/healthz  # Notification Service
+```
+
+## 🔧 Development
+
+### Local Development Setup
+
+1. **Start dependencies only**
+   ```bash
+   docker-compose up postgres mongodb nats prometheus grafana
+   ```
+
+2. **Run services locally**
+   ```bash
+   # Terminal 1 - User Service
+   cd user-service && go run main.go
+   
+   # Terminal 2 - Task Service
+   cd task-service && go run main.go
+   
+   # Terminal 3 - Frontend
+   cd frontend && npm run dev
+   ```
+
+### Testing
+
+```bash
+# Run all tests
+go test ./...
+
+# Test specific service
+cd user-service && go test -v
+```
+
+## 📊 Monitoring
+
+### Prometheus Metrics
+- Service health and availability
+- Request rates and response times
+- Error rates and status codes
+
+### Grafana Dashboards
+- Real-time service metrics
+- Performance analytics
+- Alert notifications
+
+## 🔒 Security
+
+- JWT-based authentication
+- Password hashing with bcrypt
+- Rate limiting on API Gateway
+- Input validation and sanitization
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'feat: add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## 📝 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- Built with modern microservices best practices
+- Inspired by enterprise-grade developer tools
+- Uses industry-standard technologies and patterns 
