@@ -1,0 +1,199 @@
+# Default values for devpulse
+# This is a YAML-formatted file.
+
+replicaCount:
+  userService: 2
+  taskService: 2
+  analyticsService: 1
+  notificationService: 1
+  apiGateway: 2
+  frontend: 2
+
+image:
+  repository: ghcr.io/lekhanaal1/dev-pulse
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext: {}
+
+securityContext: {}
+
+service:
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: devpulse.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+resources:
+  userService:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+  taskService:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+  analyticsService:
+    limits:
+      cpu: 300m
+      memory: 256Mi
+    requests:
+      cpu: 150m
+      memory: 128Mi
+  notificationService:
+    limits:
+      cpu: 300m
+      memory: 256Mi
+    requests:
+      cpu: 150m
+      memory: 128Mi
+  apiGateway:
+    limits:
+      cpu: 400m
+      memory: 384Mi
+    requests:
+      cpu: 200m
+      memory: 192Mi
+  frontend:
+    limits:
+      cpu: 300m
+      memory: 256Mi
+    requests:
+      cpu: 150m
+      memory: 128Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 100
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+# Database configurations
+postgresql:
+  enabled: true
+  image:
+    repository: postgres
+    tag: "15-alpine"
+  auth:
+    postgresPassword: "devpulse"
+    database: "devpulse_users"
+  primary:
+    persistence:
+      enabled: true
+      size: 8Gi
+
+mongodb:
+  enabled: true
+  image:
+    repository: mongo
+    tag: "6.0"
+  auth:
+    rootPassword: "devpulse"
+    database: "devpulse_tasks"
+  primary:
+    persistence:
+      enabled: true
+      size: 8Gi
+
+nats:
+  enabled: true
+  image:
+    repository: nats
+    tag: "2.10-alpine"
+
+# Monitoring
+prometheus:
+  enabled: true
+  image:
+    repository: prom/prometheus
+    tag: "latest"
+  config:
+    global:
+      scrape_interval: 15s
+    scrape_configs:
+      - job_name: 'user-service'
+        static_configs:
+          - targets: ['user-service:8000']
+        metrics_path: '/metrics'
+      - job_name: 'task-service'
+        static_configs:
+          - targets: ['task-service:8000']
+        metrics_path: '/metrics'
+      - job_name: 'analytics-service'
+        static_configs:
+          - targets: ['analytics-service:8000']
+        metrics_path: '/metrics'
+      - job_name: 'notification-service'
+        static_configs:
+          - targets: ['notification-service:8000']
+        metrics_path: '/metrics'
+      - job_name: 'api-gateway'
+        static_configs:
+          - targets: ['api-gateway:8080']
+        metrics_path: '/metrics'
+
+grafana:
+  enabled: true
+  image:
+    repository: grafana/grafana
+    tag: "latest"
+  adminPassword: "admin"
+  persistence:
+    enabled: true
+    size: 5Gi
+
+# Environment variables
+env:
+  userService:
+    DB_HOST: "postgres"
+    DB_USER: "postgres"
+    DB_PASSWORD: "devpulse"
+    DB_NAME: "devpulse_users"
+  taskService:
+    MONGO_URI: "mongodb://mongo:27017/devpulse_tasks"
+  analyticsService:
+    NATS_URL: "nats://nats:4222"
+  notificationService:
+    NATS_URL: "nats://nats:4222"
+  apiGateway:
+    USER_SERVICE_URL: "http://user-service:8000"
+    TASK_SERVICE_URL: "http://task-service:8000"
+    ANALYTICS_SERVICE_URL: "http://analytics-service:8000"
+    NOTIFICATION_SERVICE_URL: "http://notification-service:8000"
+    JWT_SECRET: "devpulse_secret_key_change_in_production"
+    PORT: "8080"
+  frontend:
+    NEXT_PUBLIC_API_URL: "http://api-gateway:8080" 

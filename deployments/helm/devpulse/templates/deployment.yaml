@@ -1,0 +1,285 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "devpulse.fullname" . }}-user-service
+  labels:
+    {{- include "devpulse.labels" . | nindent 4 }}
+    app: user-service
+spec:
+  replicas: {{ .Values.replicaCount.userService }}
+  selector:
+    matchLabels:
+      {{- include "devpulse.selectorLabels" . | nindent 6 }}
+      app: user-service
+  template:
+    metadata:
+      labels:
+        {{- include "devpulse.selectorLabels" . | nindent 8 }}
+        app: user-service
+    spec:
+      containers:
+        - name: user-service
+          image: "{{ .Values.image.repository }}/user-service:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+          env:
+            - name: DB_HOST
+              value: {{ .Values.env.userService.DB_HOST }}
+            - name: DB_USER
+              value: {{ .Values.env.userService.DB_USER }}
+            - name: DB_PASSWORD
+              value: {{ .Values.env.userService.DB_PASSWORD }}
+            - name: DB_NAME
+              value: {{ .Values.env.userService.DB_NAME }}
+          resources:
+            {{- toYaml .Values.resources.userService | nindent 12 }}
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "devpulse.fullname" . }}-task-service
+  labels:
+    {{- include "devpulse.labels" . | nindent 4 }}
+    app: task-service
+spec:
+  replicas: {{ .Values.replicaCount.taskService }}
+  selector:
+    matchLabels:
+      {{- include "devpulse.selectorLabels" . | nindent 6 }}
+      app: task-service
+  template:
+    metadata:
+      labels:
+        {{- include "devpulse.selectorLabels" . | nindent 8 }}
+        app: task-service
+    spec:
+      containers:
+        - name: task-service
+          image: "{{ .Values.image.repository }}/task-service:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+          env:
+            - name: MONGO_URI
+              value: {{ .Values.env.taskService.MONGO_URI }}
+          resources:
+            {{- toYaml .Values.resources.taskService | nindent 12 }}
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "devpulse.fullname" . }}-analytics-service
+  labels:
+    {{- include "devpulse.labels" . | nindent 4 }}
+    app: analytics-service
+spec:
+  replicas: {{ .Values.replicaCount.analyticsService }}
+  selector:
+    matchLabels:
+      {{- include "devpulse.selectorLabels" . | nindent 6 }}
+      app: analytics-service
+  template:
+    metadata:
+      labels:
+        {{- include "devpulse.selectorLabels" . | nindent 8 }}
+        app: analytics-service
+    spec:
+      containers:
+        - name: analytics-service
+          image: "{{ .Values.image.repository }}/analytics-service:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+          env:
+            - name: NATS_URL
+              value: {{ .Values.env.analyticsService.NATS_URL }}
+          resources:
+            {{- toYaml .Values.resources.analyticsService | nindent 12 }}
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "devpulse.fullname" . }}-notification-service
+  labels:
+    {{- include "devpulse.labels" . | nindent 4 }}
+    app: notification-service
+spec:
+  replicas: {{ .Values.replicaCount.notificationService }}
+  selector:
+    matchLabels:
+      {{- include "devpulse.selectorLabels" . | nindent 6 }}
+      app: notification-service
+  template:
+    metadata:
+      labels:
+        {{- include "devpulse.selectorLabels" . | nindent 8 }}
+        app: notification-service
+    spec:
+      containers:
+        - name: notification-service
+          image: "{{ .Values.image.repository }}/notification-service:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+          env:
+            - name: NATS_URL
+              value: {{ .Values.env.notificationService.NATS_URL }}
+          resources:
+            {{- toYaml .Values.resources.notificationService | nindent 12 }}
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "devpulse.fullname" . }}-api-gateway
+  labels:
+    {{- include "devpulse.labels" . | nindent 4 }}
+    app: api-gateway
+spec:
+  replicas: {{ .Values.replicaCount.apiGateway }}
+  selector:
+    matchLabels:
+      {{- include "devpulse.selectorLabels" . | nindent 6 }}
+      app: api-gateway
+  template:
+    metadata:
+      labels:
+        {{- include "devpulse.selectorLabels" . | nindent 8 }}
+        app: api-gateway
+    spec:
+      containers:
+        - name: api-gateway
+          image: "{{ .Values.image.repository }}/api-gateway:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          env:
+            - name: USER_SERVICE_URL
+              value: {{ .Values.env.apiGateway.USER_SERVICE_URL }}
+            - name: TASK_SERVICE_URL
+              value: {{ .Values.env.apiGateway.TASK_SERVICE_URL }}
+            - name: ANALYTICS_SERVICE_URL
+              value: {{ .Values.env.apiGateway.ANALYTICS_SERVICE_URL }}
+            - name: NOTIFICATION_SERVICE_URL
+              value: {{ .Values.env.apiGateway.NOTIFICATION_SERVICE_URL }}
+            - name: JWT_SECRET
+              value: {{ .Values.env.apiGateway.JWT_SECRET }}
+            - name: PORT
+              value: {{ .Values.env.apiGateway.PORT }}
+          resources:
+            {{- toYaml .Values.resources.apiGateway | nindent 12 }}
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "devpulse.fullname" . }}-frontend
+  labels:
+    {{- include "devpulse.labels" . | nindent 4 }}
+    app: frontend
+spec:
+  replicas: {{ .Values.replicaCount.frontend }}
+  selector:
+    matchLabels:
+      {{- include "devpulse.selectorLabels" . | nindent 6 }}
+      app: frontend
+  template:
+    metadata:
+      labels:
+        {{- include "devpulse.selectorLabels" . | nindent 8 }}
+        app: frontend
+    spec:
+      containers:
+        - name: frontend
+          image: "{{ .Values.image.repository }}/frontend:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 3000
+              protocol: TCP
+          env:
+            - name: NEXT_PUBLIC_API_URL
+              value: {{ .Values.env.frontend.NEXT_PUBLIC_API_URL }}
+          resources:
+            {{- toYaml .Values.resources.frontend | nindent 12 }}
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5 

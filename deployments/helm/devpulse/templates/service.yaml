@@ -1,0 +1,107 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "devpulse.fullname" . }}-user-service
+  labels:
+    {{- include "devpulse.labels" . | nindent 4 }}
+    app: user-service
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8000
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "devpulse.selectorLabels" . | nindent 4 }}
+    app: user-service
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "devpulse.fullname" . }}-task-service
+  labels:
+    {{- include "devpulse.labels" . | nindent 4 }}
+    app: task-service
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8000
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "devpulse.selectorLabels" . | nindent 4 }}
+    app: task-service
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "devpulse.fullname" . }}-analytics-service
+  labels:
+    {{- include "devpulse.labels" . | nindent 4 }}
+    app: analytics-service
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8000
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "devpulse.selectorLabels" . | nindent 4 }}
+    app: analytics-service
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "devpulse.fullname" . }}-notification-service
+  labels:
+    {{- include "devpulse.labels" . | nindent 4 }}
+    app: notification-service
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8000
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "devpulse.selectorLabels" . | nindent 4 }}
+    app: notification-service
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "devpulse.fullname" . }}-api-gateway
+  labels:
+    {{- include "devpulse.labels" . | nindent 4 }}
+    app: api-gateway
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8080
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "devpulse.selectorLabels" . | nindent 4 }}
+    app: api-gateway
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "devpulse.fullname" . }}-frontend
+  labels:
+    {{- include "devpulse.labels" . | nindent 4 }}
+    app: frontend
+spec:
+  type: ClusterIP
+  ports:
+    - port: 3000
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "devpulse.selectorLabels" . | nindent 4 }}
+    app: frontend 

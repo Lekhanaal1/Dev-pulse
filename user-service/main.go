@@ -11,8 +11,43 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	_ "github.com/lib/pq"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"golang.org/x/crypto/bcrypt"
 )
+
+// Prometheus metrics
+var (
+	httpRequestsTotal = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "http_requests_total",
+			Help: "Total number of HTTP requests",
+		},
+		[]string{"method", "endpoint", "status"},
+	)
+	httpRequestDuration = prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name:    "http_request_duration_seconds",
+			Help:    "HTTP request duration in seconds",
+			Buckets: prometheus.DefBuckets,
+		},
+		[]string{"method", "endpoint"},
+	)
+	userOperationsTotal = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "user_operations_total",
+			Help: "Total number of user operations",
+		},
+		[]string{"operation"},
+	)
+)
+
+func init() {
+	// Register metrics
+	prometheus.MustRegister(httpRequestsTotal)
+	prometheus.MustRegister(httpRequestDuration)
+	prometheus.MustRegister(userOperationsTotal)
+}
 
 type User struct {
 	ID           uuid.UUID `json:"id"`
@@ -60,15 +95,37 @@ func initDB() {
 	}
 }
 
+// Metrics middleware
+func metricsMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		start := time.Now()
+
+		c.Next()
+
+		duration := time.Since(start).Seconds()
+		status := c.Writer.Status()
+
+		httpRequestsTotal.WithLabelValues(c.Request.Method, c.FullPath(), string(rune(status))).Inc()
+		httpRequestDuration.WithLabelValues(c.Request.Method, c.FullPath()).Observe(duration)
+	}
+}
+
 func main() {
 	initDB()
 	r := gin.Default()
+
+	// Add metrics middleware
+	r.Use(metricsMiddleware())
 
 	r.GET("/healthz", func(c *gin.Context) {
 		c.JSON(200, gin.H{"status": "ok"})
 	})
 
+	// Prometheus metrics endpoint
+	r.GET("/metrics", gin.WrapH(promhttp.Handler()))
+
 	r.POST("/users", func(c *gin.Context) {
+		userOperationsTotal.WithLabelValues("create").Inc()
 		var req struct {
 			Name     string `json:"name" binding:"required"`
 			Email    string `json:"email" binding:"required,email"`
@@ -95,6 +152,7 @@ func main() {
 	})
 
 	r.GET("/users", func(c *gin.Context) {
+		userOperationsTotal.WithLabelValues("list").Inc()
 		rows, err := db.Query(`SELECT id, name, email, created_at, updated_at FROM users`)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "DB error"})
@@ -112,6 +170,7 @@ func main() {
 	})
 
 	r.GET("/users/:id", func(c *gin.Context) {
+		userOperationsTotal.WithLabelValues("get").Inc()
 		id, err := uuid.Parse(c.Param("id"))
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID"})
@@ -130,6 +189,7 @@ func main() {
 	})
 
 	r.PUT("/users/:id", func(c *gin.Context) {
+		userOperationsTotal.WithLabelValues("update").Inc()
 		id, err := uuid.Parse(c.Param("id"))
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID"})
@@ -184,6 +244,7 @@ func main() {
 	})
 
 	r.DELETE("/users/:id", func(c *gin.Context) {
+		userOperationsTotal.WithLabelValues("delete").Inc()
 		id, err := uuid.Parse(c.Param("id"))
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID"})

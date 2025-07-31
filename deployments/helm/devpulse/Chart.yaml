@@ -1,0 +1,21 @@
+apiVersion: v2
+name: devpulse
+description: A modern microservices-based developer dashboard for task tracking and health monitoring
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+keywords:
+  - microservices
+  - go
+  - nextjs
+  - postgresql
+  - mongodb
+  - nats
+  - prometheus
+  - grafana
+home: https://github.com/Lekhanaal1/Dev-pulse
+sources:
+  - https://github.com/Lekhanaal1/Dev-pulse
+maintainers:
+  - name: DevPulse Team
+    email: team@devpulse.com 
