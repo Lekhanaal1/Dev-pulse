@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -9,6 +10,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	_ "github.com/lib/pq"
 	"github.com/prometheus/client_golang/prometheus"
@@ -70,10 +72,25 @@ func checkPassword(hash, password string) bool {
 }
 
 func initDB() {
-	connStr := os.Getenv("DB_CONN")
-	if connStr == "" {
-		connStr = "host=postgres user=postgres password=postgres dbname=devpulse_users sslmode=disable"
+	host := os.Getenv("DB_HOST")
+	user := os.Getenv("DB_USER")
+	password := os.Getenv("DB_PASSWORD")
+	dbname := os.Getenv("DB_NAME")
+
+	if host == "" {
+		host = "postgres"
 	}
+	if user == "" {
+		user = "postgres"
+	}
+	if password == "" {
+		password = "postgres"
+	}
+	if dbname == "" {
+		dbname = "devpulse_users"
+	}
+
+	connStr := fmt.Sprintf("host=%s user=%s password=%s dbname=%s sslmode=disable", host, user, password, dbname)
 	var err error
 	db, err = sql.Open("postgres", connStr)
 	if err != nil {
@@ -105,7 +122,7 @@ func metricsMiddleware() gin.HandlerFunc {
 		duration := time.Since(start).Seconds()
 		status := c.Writer.Status()
 
-		httpRequestsTotal.WithLabelValues(c.Request.Method, c.FullPath(), string(rune(status))).Inc()
+		httpRequestsTotal.WithLabelValues(c.Request.Method, c.FullPath(), fmt.Sprintf("%d", status)).Inc()
 		httpRequestDuration.WithLabelValues(c.Request.Method, c.FullPath()).Observe(duration)
 	}
 }
@@ -118,7 +135,12 @@ func main() {
 	r.Use(metricsMiddleware())
 
 	r.GET("/healthz", func(c *gin.Context) {
-		c.JSON(200, gin.H{"status": "ok"})
+		// Check database connection
+		if err := db.Ping(); err != nil {
+			c.JSON(503, gin.H{"status": "unhealthy", "error": "Database connection failed"})
+			return
+		}
+		c.JSON(200, gin.H{"status": "healthy", "service": "user-service"})
 	})
 
 	// Prometheus metrics endpoint
@@ -149,6 +171,57 @@ func main() {
 			return
 		}
 		c.JSON(http.StatusCreated, gin.H{"id": id})
+	})
+
+	// Login endpoint
+	r.POST("/login", func(c *gin.Context) {
+		userOperationsTotal.WithLabelValues("login").Inc()
+		var req struct {
+			Email    string `json:"email" binding:"required,email"`
+			Password string `json:"password" binding:"required"`
+		}
+		if err := c.ShouldBindJSON(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		var user User
+		err := db.QueryRow(`SELECT id, name, email, password_hash FROM users WHERE email=$1`, req.Email).
+			Scan(&user.ID, &user.Name, &user.Email, &user.PasswordHash)
+		if err == sql.ErrNoRows {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
+			return
+		} else if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "DB error"})
+			return
+		}
+
+		if !checkPassword(user.PasswordHash, req.Password) {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
+			return
+		}
+
+		// Generate JWT token
+		token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+			"user_id": user.ID.String(),
+			"email":   user.Email,
+			"exp":     time.Now().Add(time.Hour * 24).Unix(), // 24 hour expiry
+		})
+
+		tokenString, err := token.SignedString([]byte(os.Getenv("JWT_SECRET")))
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"token": tokenString,
+			"user": gin.H{
+				"id":    user.ID,
+				"name":  user.Name,
+				"email": user.Email,
+			},
+		})
 	})
 
 	r.GET("/users", func(c *gin.Context) {
@@ -208,12 +281,12 @@ func main() {
 		var args []interface{}
 		idx := 1
 		if req.Name != "" {
-			set = append(set, "name=$"+string(rune(idx)))
+			set = append(set, fmt.Sprintf("name=$%d", idx))
 			args = append(args, req.Name)
 			idx++
 		}
 		if req.Email != "" {
-			set = append(set, "email=$"+string(rune(idx)))
+			set = append(set, fmt.Sprintf("email=$%d", idx))
 			args = append(args, req.Email)
 			idx++
 		}
@@ -223,7 +296,7 @@ func main() {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to hash password"})
 				return
 			}
-			set = append(set, "password_hash=$"+string(rune(idx)))
+			set = append(set, fmt.Sprintf("password_hash=$%d", idx))
 			args = append(args, hash)
 			idx++
 		}
@@ -231,11 +304,12 @@ func main() {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "No fields to update"})
 			return
 		}
-		set = append(set, "updated_at=$"+string(rune(idx)))
+		set = append(set, fmt.Sprintf("updated_at=$%d", idx))
 		args = append(args, time.Now().UTC())
 		idx++
 		args = append(args, id)
-		_, err = db.Exec(`UPDATE users SET `+joinComma(set)+` WHERE id=$`+string(rune(idx)), args...)
+		query := fmt.Sprintf(`UPDATE users SET %s WHERE id=$%d`, joinComma(set), idx)
+		_, err = db.Exec(query, args...)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "DB error"})
 			return
@@ -262,5 +336,5 @@ func main() {
 }
 
 func joinComma(fields []string) string {
-	return string([]byte(strings.Join(fields, ", ")))
+	return strings.Join(fields, ", ")
 }
