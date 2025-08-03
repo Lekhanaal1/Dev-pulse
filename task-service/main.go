@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -59,7 +60,7 @@ func metricsMiddleware() gin.HandlerFunc {
 		duration := time.Since(start).Seconds()
 		status := c.Writer.Status()
 
-		httpRequestsTotal.WithLabelValues(c.Request.Method, c.FullPath(), string(rune(status))).Inc()
+		httpRequestsTotal.WithLabelValues(c.Request.Method, c.FullPath(), fmt.Sprintf("%d", status)).Inc()
 		httpRequestDuration.WithLabelValues(c.Request.Method, c.FullPath()).Observe(duration)
 	}
 }
@@ -118,7 +119,15 @@ func main() {
 
 	// Health check
 	r.GET("/healthz", func(c *gin.Context) {
-		c.JSON(200, gin.H{"status": "ok"})
+		// Check MongoDB connection
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		if err := client.Ping(ctx, nil); err != nil {
+			c.JSON(503, gin.H{"status": "unhealthy", "error": "MongoDB connection failed"})
+			return
+		}
+		c.JSON(200, gin.H{"status": "healthy", "service": "task-service"})
 	})
 
 	// Prometheus metrics endpoint

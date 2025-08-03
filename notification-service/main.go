@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -56,7 +57,7 @@ func metricsMiddleware() gin.HandlerFunc {
 		duration := time.Since(start).Seconds()
 		status := c.Writer.Status()
 
-		httpRequestsTotal.WithLabelValues(c.Request.Method, c.FullPath(), string(rune(status))).Inc()
+		httpRequestsTotal.WithLabelValues(c.Request.Method, c.FullPath(), fmt.Sprintf("%d", status)).Inc()
 		httpRequestDuration.WithLabelValues(c.Request.Method, c.FullPath()).Observe(duration)
 	}
 }
@@ -171,7 +172,12 @@ func main() {
 
 	// Health check
 	r.GET("/healthz", func(c *gin.Context) {
-		c.JSON(200, gin.H{"status": "ok"})
+		// Check NATS connection
+		if nc.IsConnected() {
+			c.JSON(200, gin.H{"status": "healthy", "service": "notification-service"})
+		} else {
+			c.JSON(503, gin.H{"status": "unhealthy", "error": "NATS connection failed"})
+		}
 	})
 
 	// Prometheus metrics endpoint
