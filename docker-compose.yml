@@ -6,8 +6,8 @@ services:
       - "8001:8000"
     environment:
       - DB_HOST=postgres
-      - DB_USER=postgres
-      - DB_PASSWORD=postgres
+      - DB_USER=${POSTGRES_USER:-postgres}
+      - DB_PASSWORD=${POSTGRES_PASSWORD:-postgres}
       - DB_NAME=devpulse_users
     depends_on:
       - postgres
@@ -58,8 +58,8 @@ services:
   postgres:
     image: postgres:15-alpine
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       POSTGRES_DB: devpulse_users
     ports:
       - "5432:5432"

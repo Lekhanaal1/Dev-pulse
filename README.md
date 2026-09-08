@@ -1,40 +1,33 @@
 DevPulse
 ========
 
-DevPulse is a scalable, open-source task tracker designed for modern developer teams. Built with a modular microservices architecture, it delivers speed, flexibility, and privacy—without the complexity or cost of legacy tools.
+DevPulse is a work-in-progress microservices task tracker, built to practice
+Go, Docker, and distributed-systems patterns. It is a scaffold, not a
+finished product — most services currently only expose a health check.
 
-Why DevPulse?
--------------
+Planned architecture
+---------------------
 
-Today's developer teams are remote, global, and need tools that are fast, reliable, and customizable. Most existing solutions are either too complex, too expensive, or not built with developers in mind. DevPulse is different:
+- user-service: Go + Gin + PostgreSQL
+- task-service: Go + Gin + MongoDB
+- analytics-service: Go + Gin + NATS
+- notification-service: Go + Gin + NATS
+- frontend: Next.js (React)
+- NATS for async messaging between services
+- Prometheus + Grafana for monitoring
 
-- Built for developers, by developers
-- High-speed APIs with Go and Gin
-- Modular microservices for easy scaling and extension
-- Self-hosted and privacy-respecting
-- Open source and community-driven
-
-Technical Highlights
--------------------
-
-DevPulse is more than a to-do app. It demonstrates:
-
-- Microservices and distributed systems in Go
-- Real-world use of Docker, Kubernetes, and CI/CD
-- Secure, scalable APIs and async messaging (NATS)
-- Dual-database integration (PostgreSQL for users, MongoDB for tasks)
-- Modern monitoring with Prometheus and Grafana
-- Concurrency and performance best practices
-
-Personal and Community Value
-----------------------------
-
-- Showcases your ability to architect, build, and deploy a real product
-- A foundation for teams, students, and open-source contributors to build and extend
-- A launchpad for features like GitHub/Slack integrations or ML-powered analytics
-
-Getting Started
+Current status
 ---------------
+
+- [x] Docker Compose wiring for all services + Postgres/Mongo/NATS/Prometheus/Grafana
+- [x] Each Go service builds and serves `/healthz`
+- [ ] Actual task/user/notification business logic (not yet implemented)
+- [ ] API gateway
+- [ ] Automated tests
+- [ ] CI/CD
+
+Getting started
+----------------
 
 **Prerequisites:**
 - Docker and Docker Compose
@@ -44,46 +37,29 @@ Getting Started
 **Quickstart:**
 
     git clone <repo-url>
-    cd DevPulse
+    cd Dev-pulse
+    cp .env.example .env   # then edit .env if you want non-default credentials
     docker-compose up --build
 
-Monorepo Structure
-------------------
+This brings up all services, Postgres, MongoDB, NATS, Prometheus (port 9090),
+and Grafana (port 3001). Each Go service responds to `GET /healthz` on its
+mapped port (8001-8004).
 
-    DevPulse/
-      api-gateway/
+Repo structure
+---------------
+
+    Dev-pulse/
       user-service/
       task-service/
       analytics-service/
       notification-service/
       frontend/
-      deployments/    # Helm charts, Dockerfiles
-      scripts/
-      tests/
-      docs/
+      deployments/    # Prometheus config
+      docker-compose.yml
 
-Services
---------
-- user-service: Go + Gin + PostgreSQL
-- task-service: Go + Gin + MongoDB
-- analytics-service: Go + Gin + NATS
-- notification-service: Go + Gin + NATS
-- frontend: Next.js (React)
-
-Monitoring
-----------
-Prometheus and Grafana are available at their respective ports (see docker-compose).
-
-CI/CD
------
-GitHub Actions workflows are in `.github/workflows/`.
-
-Next Steps
-----------
-- Implement service scaffolds
-- Add API Gateway
-- Write Dockerfiles and Helm charts
-- Integrate monitoring
-- Add tests and documentation
-
-DevPulse exists because developers deserve tools that are as fast, flexible, and innovative as they are. 
+Next steps
+-----------
+- Implement real handlers for each service (currently health-check stubs only)
+- Add an API gateway in front of the individual services
+- Write unit/integration tests
+- Add a GitHub Actions workflow for build + test on push
